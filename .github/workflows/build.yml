@@ -12,6 +12,18 @@ jobs:
       - name: Kodu çek
         uses: actions/checkout@v4
 
+      - name: Proje klasörünü bul
+        id: proj
+        run: |
+          f=$(find . -name settings.gradle -not -path './.git/*' | head -n1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle bulunamadı. Repo içeriği:"
+            find . -not -path './.git/*' | head -50
+            exit 1
+          fi
+          echo "Proje klasörü: $(dirname "$f")"
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
+
       - name: JDK 17 kur
         uses: actions/setup-java@v4
         with:
@@ -24,11 +36,12 @@ jobs:
           gradle-version: '8.7'
 
       - name: APK derle
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: APK'yı yükle
         uses: actions/upload-artifact@v4
         with:
           name: MobilAutoClicker-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
